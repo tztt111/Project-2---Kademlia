@@ -1,0 +1,30 @@
+{
+    "simulation": {
+      "time_tick_ms": 100,
+      "max_time": 10000,
+      "random_seed": 42,
+      "events_file": "simulation_events.json"
+    },
+    "dht": {
+      "k_value": 8,
+      "id_bits": 160,
+      "alpha": 3,
+      "republish_interval": 3600
+    },
+    "network": {
+      "min_delay": 1,
+      "max_delay": 5,
+      "packet_loss_rate": 0.05
+    },
+    "logging": {
+      "level": "INFO",
+      "file": "simulation.log",
+      "console": true,
+      "output_dir": "output"
+    },
+    "seed_node": {
+      "id": null,
+      "address": null
+    }
+  }
+  

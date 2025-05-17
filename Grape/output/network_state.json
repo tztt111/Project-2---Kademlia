@@ -1,0 +1,22 @@
+{
+  "time": 100,
+  "node_count": 3,
+  "nodes": {
+    "a97803c495473811c21abeca1a07f547d5f9d39c": {
+      "id": "a97803c495473811c21abeca1a07f547d5f9d39c",
+      "address": "3f5367cd18a8",
+      "is_online": true
+    },
+    "5f4dcc3b5aa765d61d8327deb882cf99c66c4512": {
+      "id": "5f4dcc3b5aa765d61d8327deb882cf99c66c4512",
+      "address": "c0a80101ae11",
+      "is_online": true
+    },
+    "098f6bcd4621d373cade4e832627b4f6a7238d0e": {
+      "id": "098f6bcd4621d373cade4e832627b4f6a7238d0e",
+      "address": "c0a8020abd3c",
+      "is_online": true
+    }
+  },
+  "events_pending": 0
+}
