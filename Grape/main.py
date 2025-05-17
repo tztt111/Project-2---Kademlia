@@ -73,7 +73,6 @@ def main():
             del params["fileID"]
         
         # 确定事件类型
-        from event_system import EventType
         event_type = None
         
         if event_type_str == "NODE_JOIN":
@@ -102,7 +101,6 @@ def main():
             # 检索文件在处理事件时进行
         
         if event_type:
-            from event_system import Event
             simulator.schedule_event(Event(event_type, time, params))
     
     # 运行模拟

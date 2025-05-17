@@ -27,3 +27,11 @@
 2025-05-17 17:00:29,967 [INFO] [Time: 30] [File] Node 5f4dcc3b is publishing file d41d8cd9
 2025-05-17 17:00:29,967 [INFO] [Time: 40] [File] Node 098f6bcd is retrieving file d41d8cd9
 2025-05-17 17:00:29,971 [INFO] [Time: 100] [Node] Node 5f4dcc3b left the network
+2025-05-17 17:19:32,807 [INFO] [Time: 0] [Node] Node fcab4f6e joined the network
+2025-05-17 17:19:32,807 [INFO] [Time: 0] [Node] Node 5f4dcc3b joined the network
+2025-05-17 17:19:32,808 [INFO] [Time: 0] [Node] Node 098f6bcd joined the network
+2025-05-17 17:19:32,809 [INFO] [Time: 10] [Node] Node 5f4dcc3b joined the network
+2025-05-17 17:19:32,810 [INFO] [Time: 20] [Node] Node 098f6bcd joined the network
+2025-05-17 17:19:32,810 [INFO] [Time: 30] [File] Node 5f4dcc3b is publishing file d41d8cd9
+2025-05-17 17:19:32,811 [INFO] [Time: 40] [File] Node 098f6bcd is retrieving file d41d8cd9
+2025-05-17 17:19:32,812 [INFO] [Time: 100] [Node] Node 5f4dcc3b left the network
