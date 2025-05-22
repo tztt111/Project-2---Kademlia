@@ -35,3 +35,97 @@
 2025-05-17 17:19:32,810 [INFO] [Time: 30] [File] Node 5f4dcc3b is publishing file d41d8cd9
 2025-05-17 17:19:32,811 [INFO] [Time: 40] [File] Node 098f6bcd is retrieving file d41d8cd9
 2025-05-17 17:19:32,812 [INFO] [Time: 100] [Node] Node 5f4dcc3b left the network
+2025-05-17 17:33:34,880 [INFO] [Time: 0] [Node] Node bc15dde6 joined the network
+2025-05-17 17:33:34,880 [INFO] [Time: 0] [Node] Node 5f4dcc3b joined the network
+2025-05-17 17:33:34,881 [INFO] [Time: 0] [Node] Node 098f6bcd joined the network
+2025-05-17 17:33:34,882 [INFO] [Time: 0] [Node] Node 81dc9bdb joined the network
+2025-05-17 17:33:34,882 [INFO] [Time: 0] [Node] Node b0baee9d joined the network
+2025-05-17 17:33:34,883 [INFO] [Time: 0] [Node] Node c4ca4238 joined the network
+2025-05-17 17:33:34,883 [INFO] [Time: 0] [Node] Node c81e728d joined the network
+2025-05-17 17:33:34,884 [INFO] [Time: 0] [Node] Node eccbc87e joined the network
+2025-05-17 17:33:34,884 [INFO] [Time: 0] [Node] Node a87ff679 joined the network
+2025-05-17 17:33:34,884 [INFO] [Time: 0] [Node] Node e4da3b7f joined the network
+2025-05-17 17:33:34,885 [INFO] [Time: 0] [Node] Node 16790923 joined the network
+2025-05-17 17:33:34,886 [INFO] [Time: 0] [Node] Node 68053af2 joined the network
+2025-05-17 17:33:34,886 [INFO] [Time: 0] [Node] Node 3c59dc04 joined the network
+2025-05-17 17:33:34,935 [INFO] [Time: 10] [Node] Node 5f4dcc3b joined the network
+2025-05-17 17:33:34,936 [INFO] [Time: 20] [Node] Node 098f6bcd joined the network
+2025-05-17 17:33:34,937 [INFO] [Time: 25] [Node] Node 81dc9bdb joined the network
+2025-05-17 17:33:34,938 [INFO] [Time: 30] [File] Node 5f4dcc3b is publishing file d41d8cd9
+2025-05-17 17:33:34,939 [INFO] [Time: 35] [Node] Node b0baee9d joined the network
+2025-05-17 17:33:34,940 [INFO] [Time: 40] [File] Node 098f6bcd is retrieving file d41d8cd9
+2025-05-17 17:33:34,940 [INFO] [Time: 50] [File] Node 81dc9bdb is publishing file e10adc39
+2025-05-17 17:33:34,941 [INFO] [Time: 60] [Node] Node c4ca4238 joined the network
+2025-05-17 17:33:34,941 [INFO] [Time: 65] [File] Node b0baee9d is retrieving file e10adc39
+2025-05-17 17:33:34,942 [INFO] [Time: 70] [File] Node b0baee9d is publishing file 827ccb0e
+2025-05-17 17:33:34,942 [INFO] [Time: 80] [Node] Node c81e728d joined the network
+2025-05-17 17:33:34,943 [INFO] [Time: 85] [File] Node c4ca4238 is retrieving file 827ccb0e
+2025-05-17 17:33:34,943 [INFO] [Time: 90] [Node] Node eccbc87e joined the network
+2025-05-17 17:33:34,944 [INFO] [Time: 100] [Node] Node 5f4dcc3b left the network
+2025-05-17 17:33:34,944 [INFO] [Time: 110] [File] Node c81e728d is publishing file fa246d02
+2025-05-17 17:33:34,945 [INFO] [Time: 120] [Node] Node a87ff679 joined the network
+2025-05-17 17:33:34,947 [INFO] [Time: 130] [File] Node eccbc87e is retrieving file fa246d02
+2025-05-17 17:33:34,947 [INFO] [Time: 140] [File] Node a87ff679 is retrieving file d41d8cd9
+2025-05-17 17:33:34,948 [INFO] [Time: 150] [Node] Node e4da3b7f joined the network
+2025-05-17 17:33:34,949 [INFO] [Time: 160] [File] Node a87ff679 is publishing file 9246444d
+2025-05-17 17:33:34,949 [INFO] [Time: 170] [File] Node e4da3b7f is retrieving file 9246444d
+2025-05-17 17:33:34,950 [INFO] [Time: 180] [Node] Node 098f6bcd left the network
+2025-05-17 17:33:34,950 [INFO] [Time: 190] [Node] Node 16790923 joined the network
+2025-05-17 17:33:34,951 [INFO] [Time: 200] [File] Node e4da3b7f is publishing file 25d55ad2
+2025-05-17 17:33:34,951 [INFO] [Time: 210] [File] Node 16790923 is retrieving file 25d55ad2
+2025-05-17 17:33:34,952 [INFO] [Time: 220] [Node] Node 68053af2 joined the network
+2025-05-17 17:33:34,952 [INFO] [Time: 230] [File] Node 68053af2 is retrieving file e10adc39
+2025-05-17 17:33:34,953 [INFO] [Time: 240] [Node] Node b0baee9d left the network
+2025-05-17 17:33:34,953 [INFO] [Time: 250] [File] Node 68053af2 is publishing file 5416d7cd
+2025-05-17 17:33:34,954 [INFO] [Time: 260] [File] Node c4ca4238 is retrieving file 5416d7cd
+2025-05-17 17:33:34,954 [INFO] [Time: 270] [Node] Node 81dc9bdb left the network
+2025-05-17 17:33:34,955 [INFO] [Time: 280] [File] Node eccbc87e is retrieving file 5416d7cd
+2025-05-17 17:33:34,956 [INFO] [Time: 290] [Node] Node 3c59dc04 joined the network
+2025-05-17 17:33:34,957 [INFO] [Time: 300] [File] Node 3c59dc04 is publishing file bed12836
+2025-05-22 14:55:16,044 [INFO] [Time: 0] [Node] Node 10e527fe joined the network
+2025-05-22 14:55:16,045 [INFO] [Time: 0] [Node] Node 5f4dcc3b joined the network
+2025-05-22 14:55:16,045 [INFO] [Time: 0] [Node] Node 098f6bcd joined the network
+2025-05-22 14:55:16,046 [INFO] [Time: 0] [Node] Node 81dc9bdb joined the network
+2025-05-22 14:55:16,046 [INFO] [Time: 0] [Node] Node b0baee9d joined the network
+2025-05-22 14:55:16,046 [INFO] [Time: 0] [Node] Node c4ca4238 joined the network
+2025-05-22 14:55:16,047 [INFO] [Time: 0] [Node] Node c81e728d joined the network
+2025-05-22 14:55:16,047 [INFO] [Time: 0] [Node] Node eccbc87e joined the network
+2025-05-22 14:55:16,047 [INFO] [Time: 0] [Node] Node a87ff679 joined the network
+2025-05-22 14:55:16,048 [INFO] [Time: 0] [Node] Node e4da3b7f joined the network
+2025-05-22 14:55:16,048 [INFO] [Time: 0] [Node] Node 16790923 joined the network
+2025-05-22 14:55:16,049 [INFO] [Time: 0] [Node] Node 68053af2 joined the network
+2025-05-22 14:55:16,049 [INFO] [Time: 0] [Node] Node 3c59dc04 joined the network
+2025-05-22 14:55:16,082 [INFO] [Time: 10] [Node] Node 5f4dcc3b joined the network
+2025-05-22 14:55:16,083 [INFO] [Time: 20] [Node] Node 098f6bcd joined the network
+2025-05-22 14:55:16,083 [INFO] [Time: 25] [Node] Node 81dc9bdb joined the network
+2025-05-22 14:55:16,084 [INFO] [Time: 30] [File] Node 5f4dcc3b is publishing file d41d8cd9
+2025-05-22 14:55:16,084 [INFO] [Time: 35] [Node] Node b0baee9d joined the network
+2025-05-22 14:55:16,085 [INFO] [Time: 40] [File] Node 098f6bcd is retrieving file d41d8cd9
+2025-05-22 14:55:16,085 [INFO] [Time: 50] [File] Node 81dc9bdb is publishing file e10adc39
+2025-05-22 14:55:16,086 [INFO] [Time: 60] [Node] Node c4ca4238 joined the network
+2025-05-22 14:55:16,086 [INFO] [Time: 65] [File] Node b0baee9d is retrieving file e10adc39
+2025-05-22 14:55:16,086 [INFO] [Time: 70] [File] Node b0baee9d is publishing file 827ccb0e
+2025-05-22 14:55:16,087 [INFO] [Time: 80] [Node] Node c81e728d joined the network
+2025-05-22 14:55:16,087 [INFO] [Time: 85] [File] Node c4ca4238 is retrieving file 827ccb0e
+2025-05-22 14:55:16,088 [INFO] [Time: 90] [Node] Node eccbc87e joined the network
+2025-05-22 14:55:16,088 [INFO] [Time: 100] [Node] Node 5f4dcc3b left the network
+2025-05-22 14:55:16,089 [INFO] [Time: 110] [File] Node c81e728d is publishing file fa246d02
+2025-05-22 14:55:16,089 [INFO] [Time: 120] [Node] Node a87ff679 joined the network
+2025-05-22 14:55:16,089 [INFO] [Time: 130] [File] Node eccbc87e is retrieving file fa246d02
+2025-05-22 14:55:16,090 [INFO] [Time: 140] [File] Node a87ff679 is retrieving file d41d8cd9
+2025-05-22 14:55:16,091 [INFO] [Time: 150] [Node] Node e4da3b7f joined the network
+2025-05-22 14:55:16,092 [INFO] [Time: 160] [File] Node a87ff679 is publishing file 9246444d
+2025-05-22 14:55:16,092 [INFO] [Time: 170] [File] Node e4da3b7f is retrieving file 9246444d
+2025-05-22 14:55:16,093 [INFO] [Time: 180] [Node] Node 098f6bcd left the network
+2025-05-22 14:55:16,093 [INFO] [Time: 190] [Node] Node 16790923 joined the network
+2025-05-22 14:55:16,094 [INFO] [Time: 200] [File] Node e4da3b7f is publishing file 25d55ad2
+2025-05-22 14:55:16,094 [INFO] [Time: 210] [File] Node 16790923 is retrieving file 25d55ad2
+2025-05-22 14:55:16,095 [INFO] [Time: 220] [Node] Node 68053af2 joined the network
+2025-05-22 14:55:16,096 [INFO] [Time: 230] [File] Node 68053af2 is retrieving file e10adc39
+2025-05-22 14:55:16,096 [INFO] [Time: 240] [Node] Node b0baee9d left the network
+2025-05-22 14:55:16,096 [INFO] [Time: 250] [File] Node 68053af2 is publishing file 5416d7cd
+2025-05-22 14:55:16,097 [INFO] [Time: 260] [File] Node c4ca4238 is retrieving file 5416d7cd
+2025-05-22 14:55:16,097 [INFO] [Time: 270] [Node] Node 81dc9bdb left the network
+2025-05-22 14:55:16,098 [INFO] [Time: 280] [File] Node eccbc87e is retrieving file 5416d7cd
+2025-05-22 14:55:16,099 [INFO] [Time: 290] [Node] Node 3c59dc04 joined the network
+2025-05-22 14:55:16,100 [INFO] [Time: 300] [File] Node 3c59dc04 is publishing file bed12836

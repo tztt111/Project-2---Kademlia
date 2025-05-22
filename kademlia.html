@@ -1,0 +1,1496 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kademlia DHT Network Visualization</title>
+    <meta charset="utf-8">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #111;
+            color: #eee;
+            overflow: hidden;
+        }
+        
+        .container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .controls {
+            padding: 15px;
+            background-color: rgba(20, 20, 30, 0.8);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #444;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        
+        .network-graph {
+            flex-grow: 1;
+            background-color: #111;
+            background-image: radial-gradient(circle at center, #222 0%, #111 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .node {
+            stroke-width: 2px;
+            transition: all 0.3s;
+        }
+        
+        .node-glow {
+            filter: url(#glow);
+        }
+        
+        .selected-node {
+            stroke: #ffcc00 !important;
+            stroke-width: 3px !important;
+        }
+        
+        .link {
+            stroke-opacity: 0.4;
+            transition: stroke-opacity 0.3s, stroke-width 0.3s;
+        }
+        
+        .link.highlight {
+            stroke-opacity: 0.8;
+            stroke-width: 2px;
+        }
+        
+        .node text {
+            pointer-events: none;
+            font-size: 10px;
+            text-anchor: middle;
+            fill: #eee;
+            text-shadow: 0 0 3px #000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .node:hover text {
+            opacity: 1;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            border: 1px solid #444;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+            max-width: 300px;
+        }
+        
+        button {
+            background-color: #3a7bd5;
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            text-align: center;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 8px;
+            font-weight: bold;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-size: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        
+        button:hover {
+            background-color: #2a6ac5;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+        
+        select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #444;
+            background-color: #222;
+            color: white;
+            outline: none;
+        }
+        
+        .stats {
+            display: flex;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 10px;
+            border-radius: 20px;
+        }
+        
+        .stat-item {
+            margin: 0 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .stat-value {
+            font-weight: bold;
+            margin-left: 5px;
+            color: #4CAF50;
+        }
+        
+        .k-bucket-container {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background-color: rgba(20, 20, 30, 0.8);
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+            max-width: 300px;
+            display: none;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.5);
+            z-index: 100;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .k-bucket-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #3a7bd5;
+        }
+        
+        .k-bucket {
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 8px;
+        }
+        
+        .k-bucket-header {
+            font-weight: bold;
+            color: #ccc;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        
+        .k-bucket-node {
+            font-size: 11px;
+            padding: 3px 5px;
+            margin: 2px 0;
+            background-color: rgba(70, 70, 90, 0.5);
+            border-radius: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .k-bucket-node:hover {
+            background-color: rgba(90, 90, 120, 0.5);
+        }
+        
+        .file-transfer {
+            fill: #ffcc00;
+            opacity: 0.8;
+        }
+        
+        .lookup-path {
+            stroke: #ff5722;
+            stroke-dasharray: 5;
+            stroke-width: 2;
+            animation: dash 0.5s linear infinite;
+        }
+        
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -10;
+            }
+        }
+        
+        .node-ring {
+            fill: none;
+            stroke-width: 1.5px;
+        }
+
+        .file-icon {
+            font-family: monospace;
+            font-size: 8px;
+            fill: white;
+            text-anchor: middle;
+            dominant-baseline: middle;
+            pointer-events: none;
+        }
+        
+        .label {
+            position: absolute;
+            right: 20px;
+            top: 80px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        
+        .label-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        
+        .label-color {
+            width: 15px;
+            height: 15px;
+            margin-right: 10px;
+            border-radius: 50%;
+        }
+
+        .action-buttons {
+            display: flex;
+        }
+
+        .action-button {
+            border: 1px solid #444;
+            background: rgba(40,40,50,0.7);
+            color: #ccc;
+            margin-left: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+
+        .action-button:hover {
+            background: rgba(60,60,80,0.7);
+            color: white;
+        }
+
+        .distance-display {
+            font-size: 12px;
+            margin-top: 5px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="controls">
+            <div>
+                <button id="add-node">添加节点</button>
+                <button id="add-file">添加文件</button>
+                <button id="remove-node">删除节点</button>
+                <button id="simulate-lookup">模拟查找</button>
+                <button id="simulate-file-transfer">模拟传输</button>
+            </div>
+            <div class="stats">
+                <div class="stat-item">
+                    <span>节点数量: </span><span id="node-count" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>文件数量: </span><span id="file-count" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>连接数量: </span><span id="link-count" class="stat-value">0</span>
+                </div>
+            </div>
+            <div>
+                <select id="layout-type">
+                    <option value="force">力导向布局</option>
+                    <option value="circular">环形布局</option>
+                    <option value="ring">哈希环布局</option>
+                    <option value="grid">网格布局</option>
+                </select>
+            </div>
+        </div>
+        <div class="network-graph" id="network"></div>
+        <div class="tooltip" id="tooltip"></div>
+        <div class="k-bucket-container" id="k-bucket-container">
+            <div class="k-bucket-title">节点 K-桶路由表</div>
+            <div id="k-bucket-content"></div>
+        </div>
+        <div class="label" id="label">
+            <div class="label-item">
+                <div class="label-color" style="background-color: #ff8c00;"></div>
+                <div>种子节点</div>
+            </div>
+            <div class="label-item">
+                <div class="label-color" style="background-color: #4CAF50;"></div>
+                <div>存储文件的节点</div>
+            </div>
+            <div class="label-item">
+                <div class="label-color" style="background-color: #3a7bd5;"></div>
+                <div>普通节点</div>
+            </div>
+            <div class="label-item">
+                <div class="label-color" style="background-color: #ff5722;"></div>
+                <div>查找/传输路径</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DHT网络模拟数据 - 增加到25个节点
+        function generateKademliaData(nodeCount = 25) {
+            // Helper function to generate random node ID (160 bit ID as hex string)
+            function generateNodeId() {
+                return [...Array(40)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+            }
+            
+            // Create seed node
+            const nodes = [
+                { id: "seed", name: "Seed Node", nodeId: "0000000000000000000000000000000000000000", type: "seed", files: [] }
+            ];
+            
+            // Create regular nodes with proper Kademlia IDs
+            for (let i = 1; i < nodeCount; i++) {
+                nodes.push({
+                    id: "node" + i,
+                    name: "Node " + i,
+                    nodeId: generateNodeId(),
+                    type: "regular",
+                    files: []
+                });
+            }
+            
+            // Create files
+            const files = [];
+            for (let i = 1; i <= 10; i++) {
+                files.push({
+                    id: "file" + i,
+                    name: "File " + i,
+                    fileId: "f" + [...Array(39)].map(() => Math.floor(Math.random() * 16).toString(16)).join('')
+                });
+            }
+            
+            // Distribute files to nodes (excluding seed)
+            files.forEach(file => {
+                // Choose 3 random nodes to hold each file
+                const nodeIndices = new Set();
+                while (nodeIndices.size < 3) {
+                    const randomIndex = Math.floor(Math.random() * (nodes.length - 1)) + 1; // Skip seed node (index 0)
+                    nodeIndices.add(randomIndex);
+                }
+                
+                nodeIndices.forEach(idx => {
+                    nodes[idx].files.push(file.id);
+                });
+            });
+            
+            // Create initial links based on XOR distance
+            // We'll connect each node to its k closest neighbors (k=3 here)
+            const links = [];
+            const k = 3;
+            
+            for (let i = 0; i < nodes.length; i++) {
+                const distances = [];
+                
+                for (let j = 0; j < nodes.length; j++) {
+                    if (i !== j) {
+                        // Calculate XOR distance
+                        const xorDistance = calculateXorDistance(nodes[i].nodeId, nodes[j].nodeId);
+                        distances.push({ index: j, distance: xorDistance });
+                    }
+                }
+                
+                // Sort by XOR distance
+                distances.sort((a, b) => a.distance.localeCompare(b.distance, undefined, { numeric: true }));
+                
+                // Connect to k closest nodes
+                for (let m = 0; m < Math.min(k, distances.length); m++) {
+                    // Avoid duplicate links
+                    const targetIndex = distances[m].index;
+                    const linkExists = links.some(link => 
+                        (link.source === nodes[i].id && link.target === nodes[targetIndex].id) ||
+                        (link.source === nodes[targetIndex].id && link.target === nodes[i].id)
+                    );
+                    
+                    if (!linkExists) {
+                        links.push({
+                            source: nodes[i].id,
+                            target: nodes[targetIndex].id,
+                            value: 1
+                        });
+                    }
+                }
+            }
+            
+            // Also ensure seed node has connections to several nodes
+            if (nodes.length > 1) {
+                for (let i = 1; i <= Math.min(5, nodes.length - 1); i++) {
+                    const linkExists = links.some(link => 
+                        (link.source === "seed" && link.target === "node" + i) ||
+                        (link.source === "node" + i && link.target === "seed")
+                    );
+                    
+                    if (!linkExists) {
+                        links.push({
+                            source: "seed",
+                            target: "node" + i,
+                            value: 1
+                        });
+                    }
+                }
+            }
+            
+            return { nodes, links, files };
+        }
+        
+        // Calculate XOR distance between two node IDs (as hex strings)
+        function calculateXorDistance(id1, id2) {
+            let result = "";
+            for (let i = 0; i < Math.min(id1.length, id2.length); i++) {
+                // Parse hex digits and XOR them
+                const xorValue = parseInt(id1[i], 16) ^ parseInt(id2[i], 16);
+                result += xorValue.toString(16);
+            }
+            return result;
+        }
+        
+        // Get prefix length match (determines k-bucket)
+        function getPrefixLength(id1, id2) {
+            for (let i = 0; i < Math.min(id1.length, id2.length); i++) {
+                if (id1[i] !== id2[i]) {
+                    return i;
+                }
+            }
+            return Math.min(id1.length, id2.length);
+        }
+        
+        // 创建Kademlia节点的K桶
+        function createKBuckets(nodes, currentNodeId) {
+            const currentNode = nodes.find(n => n.id === currentNodeId);
+            if (!currentNode) return [];
+            
+            // 在Kademlia中，K桶根据nodeId的距离来组织
+            // 我们将使用160个可能的前缀长度（对应160位nodeId）
+            const buckets = Array(160).fill().map(() => []);
+            
+            nodes.forEach(node => {
+                if (node.id !== currentNodeId) {
+                    // 计算当前节点和其他节点的共同前缀长度
+                    const prefixLength = getPrefixLength(currentNode.nodeId, node.nodeId);
+                    
+                    // 将节点添加到对应的K桶中
+                    // 在实际的Kademlia中，每个K桶最多包含k个节点（通常k=20）
+                    if (buckets[prefixLength].length < 20) {
+                        buckets[prefixLength].push(node);
+                    }
+                }
+            });
+            
+            // 过滤掉空的K桶
+            return buckets.map((bucket, index) => ({ index, nodes: bucket }))
+                         .filter(bucket => bucket.nodes.length > 0);
+        }
+        
+        // 生成初始数据
+        const initialData = generateKademliaData(25);
+        let data = JSON.parse(JSON.stringify(initialData));
+        let width = document.getElementById('network').clientWidth;
+        let height = document.getElementById('network').clientHeight;
+        let selectedNode = null;
+        
+        // 创建SVG元素
+        const svg = d3.select("#network")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+            
+        // 创建图形定义，用于标记和特殊效果
+        const defs = svg.append("defs");
+        
+        // 添加种子节点标记
+        defs.append("marker")
+            .attr("id", "seed-marker")
+            .attr("viewBox", "0 0 10 10")
+            .attr("refX", 20)
+            .attr("refY", 5)
+            .attr("markerWidth", 6)
+            .attr("markerHeight", 6)
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M 0 0 L 10 5 L 0 10 z")
+            .attr("fill", "#ff8c00");
+            
+        // 添加查找路径标记
+        defs.append("marker")
+            .attr("id", "lookup-marker")
+            .attr("viewBox", "0 0 10 10")
+            .attr("refX", 20)
+            .attr("refY", 5)
+            .attr("markerWidth", 6)
+            .attr("markerHeight", 6)
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M 0 0 L 10 5 L 0 10 z")
+            .attr("fill", "#ff5722");
+            
+        // 添加发光滤镜效果
+        const filter = defs.append("filter")
+            .attr("id", "glow")
+            .attr("x", "-50%")
+            .attr("y", "-50%")
+            .attr("width", "200%")
+            .attr("height", "200%");
+            
+        filter.append("feGaussianBlur")
+            .attr("stdDeviation", "3")
+            .attr("result", "coloredBlur");
+            
+        const feMerge = filter.append("feMerge");
+        feMerge.append("feMergeNode")
+            .attr("in", "coloredBlur");
+        feMerge.append("feMergeNode")
+            .attr("in", "SourceGraphic");
+            
+        // 创建力导向模拟
+        let simulation = d3.forceSimulation()
+            .force("link", d3.forceLink().id(d => d.id).distance(100))
+            .force("charge", d3.forceManyBody().strength(-300))
+            .force("center", d3.forceCenter(width / 2, height / 2));
+            
+        // 创建链接
+        let link = svg.append("g")
+            .attr("class", "links")
+            .selectAll("line")
+            .data(data.links)
+            .enter()
+            .append("line")
+            .attr("class", "link")
+            .attr("stroke", "#444")
+            .attr("stroke-width", d => Math.sqrt(d.value));
+            
+        // 创建节点组
+        let node = svg.append("g")
+            .attr("class", "nodes")
+            .selectAll("g")
+            .data(data.nodes)
+            .enter()
+            .append("g")
+            .attr("class", "node")
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended))
+            .on("click", selectNode);
+                
+        // 添加节点外环
+        node.append("circle")
+            .attr("class", "node-ring")
+            .attr("r", d => d.type === "seed" ? 18 : (d.files.length > 0 ? 13 : 11))
+            .attr("stroke", d => d.type === "seed" ? "#ff8c00" : (d.files.length > 0 ? "#4CAF50" : "#3a7bd5"))
+            .attr("opacity", 0.3);
+            
+        // 添加节点圆形
+        node.append("circle")
+            .attr("class", "node node-glow")
+            .attr("r", d => d.type === "seed" ? 15 : (d.files.length > 0 ? 10 : 8))
+            .attr("fill", d => getNodeColor(d))
+            .attr("stroke", "#fff")
+            .on("mouseover", showTooltip)
+            .on("mouseout", hideTooltip);
+            
+        // 添加文件图标到包含文件的节点
+        node.filter(d => d.files.length > 0)
+            .append("text")
+            .attr("class", "file-icon")
+            .attr("dy", ".3em")
+            .text(d => d.files.length > 1 ? "+" + d.files.length : "f");
+            
+        // 添加节点标签
+        node.append("text")
+            .attr("dy", ".35em")
+            .attr("y", d => d.type === "seed" ? 25 : 20)
+            .text(d => d.name);
+            
+        // 更新统计信息
+        updateStats();
+        
+        // 开始模拟
+        simulation
+            .nodes(data.nodes)
+            .on("tick", ticked);
+            
+        simulation.force("link")
+            .links(data.links);
+            
+        // 添加动作按钮事件
+        document.getElementById("add-node").addEventListener("click", addNode);
+        document.getElementById("add-file").addEventListener("click", addFile);
+        document.getElementById("remove-node").addEventListener("click", removeNode);
+        document.getElementById("layout-type").addEventListener("change", changeLayout);
+        document.getElementById("simulate-lookup").addEventListener("click", simulateLookup);
+        document.getElementById("simulate-file-transfer").addEventListener("click", simulateFileTransfer);
+        
+        // 监听窗口大小变化
+        window.addEventListener("resize", resizeGraph);
+        
+        // 函数定义
+        function ticked() {
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+                
+            node
+                .attr("transform", d => `translate(${d.x},${d.y})`);
+        }
+        
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+        
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+        
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+        
+        function getNodeColor(d) {
+            if (d.type === "seed") return "#ff8c00";
+            if (d.files.length > 0) return "#4CAF50";
+            return "#3a7bd5";
+        }
+        
+        function selectNode(event, d) {
+            // 取消之前选中的节点
+            if (selectedNode) {
+                d3.selectAll(".node circle").classed("selected-node", false);
+                d3.selectAll(".link").classed("highlight", false);
+            }
+            
+            selectedNode = d;
+            
+            // 高亮选中的节点
+            d3.select(this).select("circle.node").classed("selected-node", true);
+            
+            // 高亮连接到该节点的链接
+            link.classed("highlight", l => l.source.id === d.id || l.target.id === d.id);
+            
+            // 显示该节点的K桶
+            showKBuckets(d.id);
+            
+            event.stopPropagation();
+        }
+        
+        function showKBuckets(nodeId) {
+            const kBuckets = createKBuckets(data.nodes, nodeId);
+            const kBucketContainer = document.getElementById("k-bucket-container");
+            const kBucketContent = document.getElementById("k-bucket-content");
+            
+            // 清空内容
+            kBucketContent.innerHTML = "";
+            
+            // 获取选中的节点
+            const selectedNode = data.nodes.find(n => n.id === nodeId);
+            
+            if (selectedNode) {
+                // 添加节点信息
+                const nodeInfo = document.createElement("div");
+                nodeInfo.className = "k-bucket-header";
+                nodeInfo.innerHTML = `<strong>${selectedNode.name}</strong><br>NodeID: ${selectedNode.nodeId}<br><br>`;
+                kBucketContent.appendChild(nodeInfo);
+                
+                // 添加K桶
+                kBuckets.forEach(bucket => {
+                    const bucketDiv = document.createElement("div");
+                    bucketDiv.className = "k-bucket";
+                    
+                    const bucketHeader = document.createElement("div");
+                    bucketHeader.className = "k-bucket-header";
+                    bucketHeader.textContent = `K-Bucket ${bucket.index} (共同前缀长度: ${bucket.index} 位)`;
+                    bucketDiv.appendChild(bucketHeader);
+                    
+                    bucket.nodes.forEach(n => {
+                        const nodeDiv = document.createElement("div");
+                        nodeDiv.className = "k-bucket-node";
+                        
+                        // 计算XOR距离
+                        const distance = calculateXorDistance(selectedNode.nodeId, n.nodeId);
+                        
+                        nodeDiv.innerHTML = `${n.name} <span style="opacity:0.7;">(${n.nodeId.substring(0, 8)}...)</span>`;
+                        
+                        // 添加查找和距离计算按钮
+                        const actionDiv = document.createElement("div");
+                        actionDiv.className = "action-buttons";
+                        
+                        const lookupBtn = document.createElement("span");
+                        lookupBtn.className = "action-button";
+                        lookupBtn.textContent = "查找";
+                        lookupBtn.onclick = function(e) {
+                            e.stopPropagation();
+                            simulateLookupPath(selectedNode.id, n.id);
+                        };
+                        actionDiv.appendChild(lookupBtn);
+                        
+                        const distanceBtn = document.createElement("span");
+                        distanceBtn.className = "action-button";
+                        distanceBtn.textContent = "距离";
+                        distanceBtn.onclick = function(e) {
+                            e.stopPropagation();
+                            const distDisplay = nodeDiv.querySelector(".distance-display");
+                            if (distDisplay) {
+                                distDisplay.style.display = distDisplay.style.display === "none" ? "block" : "none";
+                            } else {
+                                const distDiv = document.createElement("div");
+                                distDiv.className = "distance-display";
+                                distDiv.textContent = `XOR距离: ${distance.substring(0, 16)}...`;
+                                nodeDiv.appendChild(distDiv);
+                            }
+                        };
+                        actionDiv.appendChild(distanceBtn);
+                        
+                        nodeDiv.appendChild(actionDiv);
+                        bucketDiv.appendChild(nodeDiv);
+                    });
+                    
+                    kBucketContent.appendChild(bucketDiv);
+                });
+                
+                // 显示K桶容器
+                kBucketContainer.style.display = "block";
+            }
+        }
+        
+        // 点击背景清除选择
+        svg.on("click", function() {
+            if (selectedNode) {
+                d3.selectAll(".node circle").classed("selected-node", false);
+                d3.selectAll(".link").classed("highlight", false);
+                document.getElementById("k-bucket-container").style.display = "none";
+                selectedNode = null;
+            }
+        });
+        
+        function showTooltip(event, d) {
+            const tooltip = d3.select("#tooltip");
+            
+            let tooltipContent = `<strong>${d.name}</strong><br/>ID: ${d.nodeId.substring(0, 8)}...<br/>`;
+            
+            if (d.files.length > 0) {
+                tooltipContent += `<strong>存储的文件:</strong><br/>`;
+                d.files.forEach(fileId => {
+                    const file = data.files.find(f => f.id === fileId);
+                    if (file) {
+                        tooltipContent += `- ${file.name} (${file.fileId.substring(0, 8)}...)<br/>`;
+                    }
+                });
+            }
+            
+            tooltip.html(tooltipContent)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 20) + "px")
+                .style("opacity", 1);
+        }
+        
+        function hideTooltip() {
+            d3.select("#tooltip").style("opacity", 0);
+        }
+        
+        function addNode() {
+            const nodeId = "node" + (data.nodes.length + 1);
+            const randomHex = [...Array(40)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+            
+            const newNode = {
+                id: nodeId,
+                name: "Node " + (data.nodes.length + 1),
+                nodeId: randomHex,
+                type: "regular",
+                files: []
+            };
+            
+            // 基于XOR距离选择最近的3个节点进行连接
+            const distances = [];
+            
+            data.nodes.forEach(existingNode => {
+                const xorDistance = calculateXorDistance(newNode.nodeId, existingNode.nodeId);
+                distances.push({ node: existingNode, distance: xorDistance });
+            });
+            
+            // 按XOR距离排序
+            distances.sort((a, b) => a.distance.localeCompare(b.distance, undefined, { numeric: true }));
+            
+            // 添加节点和连接
+            data.nodes.push(newNode);
+            
+            // 连接到最近的3个节点
+            for (let i = 0; i < Math.min(3, distances.length); i++) {
+                data.links.push({
+                    source: distances[i].node.id,
+                    target: nodeId,
+                    value: 1
+                });
+            }
+            
+            // 动画效果：新节点以闪烁出现
+            updateVisualization();
+            
+            // 找到新添加的节点
+            const newNodeElement = node.filter(d => d.id === nodeId);
+            
+            // 添加闪烁动画
+            newNodeElement.select("circle.node")
+                .attr("fill", "#FFFFFF")
+                .transition()
+                .duration(500)
+                .attr("fill", getNodeColor(newNode))
+                .transition()
+                .duration(500)
+                .attr("fill", "#FFFFFF")
+                .transition()
+                .duration(500)
+                .attr("fill", getNodeColor(newNode));
+        }
+        
+        function addFile() {
+            const fileId = "file" + (data.files.length + 1);
+            const randomHex = "f" + [...Array(39)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+            
+            const newFile = {
+                id: fileId,
+                name: "File " + (data.files.length + 1),
+                fileId: randomHex
+            };
+            
+            data.files.push(newFile);
+            
+            // 选择3个节点来存储文件
+            const nodeIndices = new Set();
+            while (nodeIndices.size < 3 && nodeIndices.size < data.nodes.length) {
+                const randomIndex = Math.floor(Math.random() * data.nodes.length);
+                nodeIndices.add(randomIndex);
+            }
+            
+            const selectedNodes = [];
+            nodeIndices.forEach(idx => {
+                data.nodes[idx].files.push(fileId);
+                selectedNodes.push(data.nodes[idx].id);
+            });
+            
+            updateVisualization();
+            
+            // 闪烁存储了新文件的节点
+            selectedNodes.forEach(nodeId => {
+                node.filter(d => d.id === nodeId)
+                    .select("circle.node")
+                    .transition()
+                    .duration(300)
+                    .attr("fill", "#FFFFFF")
+                    .transition()
+                    .duration(300)
+                    .attr("fill", getNodeColor(data.nodes.find(n => n.id === nodeId)));
+            });
+        }
+        
+        function removeNode() {
+            if (data.nodes.length <= 1) return;
+            
+            // 不删除种子节点
+            const regularNodes = data.nodes.filter(n => n.type !== "seed");
+            if (regularNodes.length === 0) return;
+            
+            // 随机选择一个普通节点删除
+            const randomIndex = Math.floor(Math.random() * regularNodes.length);
+            const nodeToRemove = regularNodes[randomIndex];
+            
+            // 在删除前闪烁该节点
+            node.filter(d => d.id === nodeToRemove.id)
+                .select("circle.node")
+                .transition()
+                .duration(300)
+                .attr("fill", "#FF0000")
+                .transition()
+                .duration(300)
+                .attr("fill", getNodeColor(nodeToRemove))
+                .transition()
+                .duration(300)
+                .attr("fill", "#FF0000")
+                .transition()
+                .duration(300)
+                .attr("r", 0)
+                .on("end", function() {
+                    // 删除节点
+                    data.nodes = data.nodes.filter(n => n.id !== nodeToRemove.id);
+                    
+                    // 删除相关连接
+                    data.links = data.links.filter(l => 
+                        l.source.id !== nodeToRemove.id && l.target.id !== nodeToRemove.id);
+                    
+                    updateVisualization();
+                    
+                    // 如果删除的是当前选中的节点，隐藏K桶容器
+                    if (selectedNode && selectedNode.id === nodeToRemove.id) {
+                        document.getElementById("k-bucket-container").style.display = "none";
+                        selectedNode = null;
+                    }
+                });
+        }
+        
+        function simulateLookup() {
+            // 如果没有选中节点，随机选择一个源节点
+            const sourceNode = selectedNode || data.nodes[Math.floor(Math.random() * data.nodes.length)];
+            
+            // 随机选择一个目标节点 (不能是源节点)
+            let targetNode;
+            do {
+                targetNode = data.nodes[Math.floor(Math.random() * data.nodes.length)];
+            } while (targetNode.id === sourceNode.id);
+            
+            simulateLookupPath(sourceNode.id, targetNode.id);
+        }
+        
+        
+        function simulateLookupPath(sourceId, targetId) {
+            // 清除之前的路径
+            svg.selectAll(".lookup-path").remove();
+            svg.selectAll(".file-transfer").remove();
+            
+            const sourceNode = data.nodes.find(n => n.id === sourceId);
+            const targetNode = data.nodes.find(n => n.id === targetId);
+            
+            if (!sourceNode || !targetNode) return;
+            
+            // 显示查找过程的工具提示
+            const tooltip = d3.select("#tooltip");
+            tooltip.html(`<strong>模拟查找:</strong><br/>
+                          源节点: ${sourceNode.name}<br/>
+                          目标节点: ${targetNode.name}<br/>
+                          <em>计算最优路由路径...</em>`)
+                .style("left", "20px")
+                .style("top", "80px")
+                .style("opacity", 1);
+            
+            // 基于XOR距离计算Kademlia路由路径
+            const path = findKademliaPath(sourceNode, targetNode);
+            
+            // 依次高亮路径上的节点和链接
+            let currentIndex = 0;
+            
+            // 重置所有节点和链接的样式
+            node.select("circle.node").attr("stroke", "#fff").attr("stroke-width", 1.5);
+            link.attr("stroke", "#444").attr("stroke-opacity", 0.4);
+            
+            // 创建动画间隔
+            const interval = setInterval(() => {
+                if (currentIndex >= path.length) {
+                    clearInterval(interval);
+                    
+                    // 突出显示找到的节点
+                    node.filter(d => d.id === targetNode.id)
+                        .select("circle.node")
+                        .attr("stroke", "#ff5722")
+                        .attr("stroke-width", 3);
+                        
+                    // 更新工具提示
+                    tooltip.html(`<strong>查找完成!</strong><br/>
+                                  源节点: ${sourceNode.name}<br/>
+                                  目标节点: ${targetNode.name}<br/>
+                                  跳数: ${path.length - 1}<br/>
+                                  <em>XOR距离: ${calculateXorDistance(sourceNode.nodeId, targetNode.nodeId).substring(0, 8)}...</em>`);
+                    
+                    // 4秒后隐藏工具提示
+                    setTimeout(() => {
+                        tooltip.style("opacity", 0);
+                        node.select("circle.node")
+                            .attr("stroke", "#fff")
+                            .attr("stroke-width", 1.5);
+                    }, 4000);
+                    
+                    return;
+                }
+                
+                const currentNodeId = path[currentIndex];
+                const nextNodeId = path[currentIndex + 1];
+                
+                // 更新工具提示
+                if (nextNodeId) {
+                    const currentNodeObj = data.nodes.find(n => n.id === currentNodeId);
+                    const nextNodeObj = data.nodes.find(n => n.id === nextNodeId);
+                    
+                    if (currentNodeObj && nextNodeObj) {
+                        tooltip.html(`<strong>查找进行中:</strong><br/>
+                                      源节点: ${sourceNode.name}<br/>
+                                      目标节点: ${targetNode.name}<br/>
+                                      当前跳: ${currentIndex + 1}<br/>
+                                      从 ${currentNodeObj.name} 到 ${nextNodeObj.name}<br/>
+                                      <em>XOR距离: ${calculateXorDistance(nextNodeObj.nodeId, targetNode.nodeId).substring(0, 8)}...</em>`);
+                    }
+                }
+                
+                // 高亮当前节点
+                node.filter(d => d.id === currentNodeId)
+                    .select("circle.node")
+                    .attr("stroke", "#ff5722")
+                    .attr("stroke-width", 3);
+                    
+                // 如果有下一个节点，高亮链接并创建动画路径
+                if (nextNodeId) {
+                    // 查找链接
+                    const linkElement = link.filter(d => 
+                        (d.source.id === currentNodeId && d.target.id === nextNodeId) ||
+                        (d.source.id === nextNodeId && d.target.id === currentNodeId));
+                        
+                    // 高亮链接
+                    linkElement
+                        .attr("stroke", "#ff5722")
+                        .attr("stroke-opacity", 1)
+                        .attr("stroke-width", 2)
+                        .attr("marker-end", "url(#lookup-marker)");
+                        
+                    // 创建动画路径
+                    const currentNodeObj = data.nodes.find(n => n.id === currentNodeId);
+                    const nextNodeObj = data.nodes.find(n => n.id === nextNodeId);
+                    
+                    if (currentNodeObj && nextNodeObj) {
+                        svg.append("line")
+                            .attr("class", "lookup-path")
+                            .attr("x1", currentNodeObj.x)
+                            .attr("y1", currentNodeObj.y)
+                            .attr("x2", nextNodeObj.x)
+                            .attr("y2", nextNodeObj.y)
+                            .attr("stroke", "#ff5722")
+                            .attr("stroke-width", 2)
+                            .attr("stroke-dasharray", "5,5");
+                    }
+                }
+                
+                currentIndex++;
+            }, 1000);
+        }
+        
+        function simulateFileTransfer() {
+            // 如果没有文件或者只有一个节点，不执行
+            if (data.files.length === 0 || data.nodes.length <= 1) return;
+            
+            // 随机选择一个拥有文件的节点
+            const nodesWithFiles = data.nodes.filter(n => n.files.length > 0);
+            if (nodesWithFiles.length === 0) return;
+            
+            const sourceIndex = Math.floor(Math.random() * nodesWithFiles.length);
+            const sourceNode = nodesWithFiles[sourceIndex];
+            
+            // 随机选择一个该节点拥有的文件
+            const fileIndex = Math.floor(Math.random() * sourceNode.files.length);
+            const fileId = sourceNode.files[fileIndex];
+            const file = data.files.find(f => f.id === fileId);
+            
+            // 随机选择一个不拥有该文件的目标节点
+            const possibleTargets = data.nodes.filter(n => n.id !== sourceNode.id && !n.files.includes(fileId));
+            if (possibleTargets.length === 0) return;
+            
+            const targetIndex = Math.floor(Math.random() * possibleTargets.length);
+            const targetNode = possibleTargets[targetIndex];
+            
+            // 显示传输信息
+            const tooltip = d3.select("#tooltip");
+            tooltip.html(`<strong>模拟文件传输:</strong><br/>
+                          源节点: ${sourceNode.name}<br/>
+                          目标节点: ${targetNode.name}<br/>
+                          文件: ${file.name}<br/>
+                          <em>查找路径...</em>`)
+                .style("left", "20px")
+                .style("top", "80px")
+                .style("opacity", 1);
+                
+            // 找出一条传输路径
+            const path = findKademliaPath(sourceNode, targetNode);
+            
+            // 如果没有路径，退出
+            if (path.length <= 1) {
+                tooltip.html(`<strong>无法传输文件:</strong><br/>
+                              无法找到从 ${sourceNode.name} 到 ${targetNode.name} 的路径`);
+                              
+                setTimeout(() => tooltip.style("opacity", 0), 3000);
+                return;
+            }
+            
+            // 清除之前的动画
+            svg.selectAll(".lookup-path").remove();
+            svg.selectAll(".file-transfer").remove();
+            
+            // 创建文件传输动画
+            const animateFileTransfer = (currentIndex) => {
+                if (currentIndex >= path.length - 1) {
+                    // 传输完成，更新目标节点
+                    targetNode.files.push(fileId);
+                    
+                    // 更新可视化
+                    updateVisualization();
+                    
+                    // 突出显示目标节点
+                    node.filter(d => d.id === targetNode.id)
+                        .select("circle.node")
+                        .transition()
+                        .duration(300)
+                        .attr("fill", "#FFFFFF")
+                        .transition()
+                        .duration(300)
+                        .attr("fill", getNodeColor(targetNode));
+                        
+                    // 更新提示
+                    tooltip.html(`<strong>文件传输完成!</strong><br/>
+                                  源节点: ${sourceNode.name}<br/>
+                                  目标节点: ${targetNode.name}<br/>
+                                  文件: ${file.name}<br/>
+                                  跳数: ${path.length - 1}`);
+                                  
+                    setTimeout(() => tooltip.style("opacity", 0), 3000);
+                    return;
+                }
+                
+                const currentNodeId = path[currentIndex];
+                const nextNodeId = path[currentIndex + 1];
+                
+                const currentNodeObj = data.nodes.find(n => n.id === currentNodeId);
+                const nextNodeObj = data.nodes.find(n => n.id === nextNodeId);
+                
+                if (!currentNodeObj || !nextNodeObj) return;
+                
+                // 更新提示
+                tooltip.html(`<strong>文件传输中:</strong><br/>
+                              源节点: ${sourceNode.name}<br/>
+                              目标节点: ${targetNode.name}<br/>
+                              文件: ${file.name}<br/>
+                              当前传输: ${currentNodeObj.name} → ${nextNodeObj.name}<br/>
+                              进度: ${Math.round((currentIndex + 1) / (path.length - 1) * 100)}%`);
+                
+                // 创建文件传输动画
+                const fileCircle = svg.append("circle")
+                    .attr("class", "file-transfer")
+                    .attr("r", 5)
+                    .attr("cx", currentNodeObj.x)
+                    .attr("cy", currentNodeObj.y);
+                    
+                // 动画：文件从当前节点移动到下一个节点
+                fileCircle.transition()
+                    .duration(1000)
+                    .attr("cx", nextNodeObj.x)
+                    .attr("cy", nextNodeObj.y)
+                    .on("end", function() {
+                        // 移除动画元素
+                        fileCircle.remove();
+                        
+                        // 继续下一段路径
+                        animateFileTransfer(currentIndex + 1);
+                    });
+            };
+            
+            // 开始动画
+            animateFileTransfer(0);
+        }
+        
+        function findKademliaPath(sourceNode, targetNode) {
+            // 实现Kademlia路由算法的简化版本
+            // 在真实Kademlia中，这是一个递归查找过程，基于XOR距离
+            
+            const start = sourceNode.id;
+            const end = targetNode.id;
+            
+            // 已访问的节点集合
+            const visited = new Set([start]);
+            
+            // 贪婪路由：每一步都选择XOR距离最近的节点
+            const path = [start];
+            let current = start;
+            
+            while (current !== end) {
+                const currentNode = data.nodes.find(n => n.id === current);
+                if (!currentNode) break;
+                
+                // 获取当前节点的所有邻居
+                const neighbors = data.links
+                    .filter(link => link.source.id === current || link.target.id === current)
+                    .map(link => link.source.id === current ? link.target.id : link.source.id)
+                    .filter(id => !visited.has(id));
+                    
+                if (neighbors.length === 0) {
+                    // 没有未访问的邻居，尝试跳转到任何更接近目标的已知节点
+                    // 这里简化为随机选择一个未访问的节点
+                    const unvisited = data.nodes
+                        .filter(n => !visited.has(n.id))
+                        .map(n => n.id);
+                        
+                    if (unvisited.length === 0) break;
+                    
+                    // 随机选择一个未访问节点
+                    const randomIndex = Math.floor(Math.random() * unvisited.length);
+                    const nextId = unvisited[randomIndex];
+                    
+                    visited.add(nextId);
+                    path.push(nextId);
+                    current = nextId;
+                    continue;
+                }
+                
+                // 对邻居按XOR距离排序
+                const neighborDistances = neighbors.map(id => {
+                    const nodeObj = data.nodes.find(n => n.id === id);
+                    return {
+                        id,
+                        distance: calculateXorDistance(nodeObj.nodeId, targetNode.nodeId)
+                    };
+                });
+                
+                // 按XOR距离排序
+                neighborDistances.sort((a, b) => a.distance.localeCompare(b.distance, undefined, { numeric: true }));
+                
+                // 如果目标节点是邻居，直接到达
+                if (neighbors.includes(end)) {
+                    path.push(end);
+                    break;
+                }
+                
+                // 选择XOR距离最近的邻居
+                const nextId = neighborDistances[0].id;
+                visited.add(nextId);
+                path.push(nextId);
+                current = nextId;
+                
+                // 避免无限循环
+                if (path.length > 10) {
+                    if (!path.includes(end)) {
+                        path.push(end);
+                    }
+                    break;
+                }
+            }
+            
+            return path;
+        }
+        
+        function changeLayout() {
+            const layoutType = document.getElementById("layout-type").value;
+            
+            // 停止当前模拟
+            simulation.stop();
+            
+            if (layoutType === "force") {
+                // 重新创建力导向模拟
+                simulation = d3.forceSimulation()
+                    .force("link", d3.forceLink().id(d => d.id).distance(100))
+                    .force("charge", d3.forceManyBody().strength(-300))
+                    .force("center", d3.forceCenter(width / 2, height / 2));
+                    
+                // 释放固定位置
+                data.nodes.forEach(node => {
+                    node.fx = null;
+                    node.fy = null;
+                });
+            } else if (layoutType === "circular") {
+                // 创建环形布局
+                const radius = Math.min(width, height) / 2 - 80;
+                const angleStep = 2 * Math.PI / data.nodes.length;
+                
+                data.nodes.forEach((node, i) => {
+                    node.x = width / 2 + radius * Math.cos(i * angleStep);
+                    node.y = height / 2 + radius * Math.sin(i * angleStep);
+                    node.fx = node.x;
+                    node.fy = node.y;
+                });
+                
+                simulation = d3.forceSimulation()
+                    .force("link", d3.forceLink().id(d => d.id).distance(100))
+                    .force("center", d3.forceCenter(width / 2, height / 2));
+            } else if (layoutType === "ring") {
+                // 创建基于哈希环的布局（显示Kademlia ID空间）
+                // 将节点按照其nodeId的值排序
+                const sortedNodes = [...data.nodes].sort((a, b) => 
+                    a.nodeId.localeCompare(b.nodeId, undefined, { numeric: true }));
+                    
+                const radius = Math.min(width, height) / 2 - 80;
+                const angleStep = 2 * Math.PI / sortedNodes.length;
+                
+                // 为每个节点分配位置
+                sortedNodes.forEach((node, i) => {
+                    // 计算角度：基于节点ID在环上的位置
+                    const angle = i * angleStep;
+                    
+                    // 设置节点位置
+                    const actualNode = data.nodes.find(n => n.id === node.id);
+                    if (actualNode) {
+                        actualNode.x = width / 2 + radius * Math.cos(angle);
+                        actualNode.y = height / 2 + radius * Math.sin(angle);
+                        actualNode.fx = actualNode.x;
+                        actualNode.fy = actualNode.y;
+                    }
+                });
+                
+                simulation = d3.forceSimulation()
+                    .force("link", d3.forceLink().id(d => d.id))
+                    .force("center", d3.forceCenter(width / 2, height / 2));
+            } else if (layoutType === "grid") {
+                // 创建网格布局
+                const gridSize = Math.ceil(Math.sqrt(data.nodes.length));
+                const cellWidth = width / (gridSize + 1);
+                const cellHeight = height / (gridSize + 1);
+                
+                data.nodes.forEach((node, i) => {
+                    const row = Math.floor(i / gridSize);
+                    const col = i % gridSize;
+                    
+                    node.x = cellWidth * (col + 1);
+                    node.y = cellHeight * (row + 1);
+                    node.fx = node.x;
+                    node.fy = node.y;
+                });
+                
+                simulation = d3.forceSimulation()
+                    .force("link", d3.forceLink().id(d => d.id).distance(100));
+            }
+            
+            // 重新启动模拟
+            simulation
+                .nodes(data.nodes)
+                .on("tick", ticked);
+                
+            simulation.force("link")
+                .links(data.links);
+            
+            // 如果不是力导向，固定节点位置
+            if (layoutType !== "force") {
+                setTimeout(() => {
+                    simulation.alpha(0.1).restart();
+                }, 100);
+            } else {
+                simulation.alpha(1).restart();
+            }
+        }
+        
+        function updateVisualization() {
+            // 更新链接
+            link = link.data(data.links, d => d.source.id + "-" + d.target.id);
+            link.exit().remove();
+            const linkEnter = link.enter().append("line")
+                .attr("class", "link")
+                .attr("stroke", "#444")
+                .attr("stroke-width", d => Math.sqrt(d.value));
+                
+            link = linkEnter.merge(link);
+                
+            // 更新节点组
+            node = node.data(data.nodes, d => d.id);
+            
+            // 退出的节点动画
+            node.exit()
+                .select("circle.node")
+                .transition()
+                .duration(300)
+                .attr("r", 0)
+                .on("end", function() {
+                    d3.select(this.parentNode).remove();
+                });
+                
+            // 创建新节点
+            const nodeEnter = node.enter().append("g")
+                .attr("class", "node")
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended))
+                .on("click", selectNode);
+                
+            // 添加节点外环
+            nodeEnter.append("circle")
+                .attr("class", "node-ring")
+                .attr("r", d => d.type === "seed" ? 18 : (d.files.length > 0 ? 13 : 11))
+                .attr("stroke", d => d.type === "seed" ? "#ff8c00" : (d.files.length > 0 ? "#4CAF50" : "#3a7bd5"))
+                .attr("opacity", 0.3);
+                
+            // 添加节点圆形
+            nodeEnter.append("circle")
+                .attr("class", "node node-glow")
+                .attr("r", d => d.type === "seed" ? 15 : (d.files.length > 0 ? 10 : 8))
+                .attr("fill", d => getNodeColor(d))
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 1.5)
+                .on("mouseover", showTooltip)
+                .on("mouseout", hideTooltip);
+                
+            // 添加文件图标
+            nodeEnter.filter(d => d.files.length > 0)
+                .append("text")
+                .attr("class", "file-icon")
+                .attr("dy", ".3em")
+                .text(d => d.files.length > 1 ? "+" + d.files.length : "f");
+                
+            // 添加节点标签
+            nodeEnter.append("text")
+                .attr("dy", ".35em")
+                .attr("y", d => d.type === "seed" ? 25 : 20)
+                .text(d => d.name);
+                
+            node = nodeEnter.merge(node);
+            
+            // 更新节点颜色和大小
+            node.select("circle.node-ring")
+                .attr("r", d => d.type === "seed" ? 18 : (d.files.length > 0 ? 13 : 11))
+                .attr("stroke", d => d.type === "seed" ? "#ff8c00" : (d.files.length > 0 ? "#4CAF50" : "#3a7bd5"));
+                
+            node.select("circle.node")
+                .attr("r", d => d.type === "seed" ? 15 : (d.files.length > 0 ? 10 : 8))
+                .attr("fill", d => getNodeColor(d));
+                
+            // 更新文件图标
+            node.each(function(d) {
+                const hasFile = d.files.length > 0;
+                const fileIcon = d3.select(this).select(".file-icon");
+                
+                if (hasFile && fileIcon.empty()) {
+                    d3.select(this).append("text")
+                        .attr("class", "file-icon")
+                        .attr("dy", ".3em")
+                        .text(d.files.length > 1 ? "+" + d.files.length : "f");
+                } else if (hasFile) {
+                    fileIcon.text(d.files.length > 1 ? "+" + d.files.length : "f");
+                } else if (!hasFile && !fileIcon.empty()) {
+                    fileIcon.remove();
+                }
+            });
+            
+            // 重新启动模拟
+            simulation.nodes(data.nodes);
+            simulation.force("link").links(data.links);
+            simulation.alpha(1).restart();
+            
+            // 更新统计信息
+            updateStats();
+        }
+        
+        function updateStats() {
+            document.getElementById("node-count").textContent = data.nodes.length;
+            document.getElementById("file-count").textContent = data.files.length;
+            document.getElementById("link-count").textContent = data.links.length;
+        }
+        
+        function resizeGraph() {
+            width = document.getElementById('network').clientWidth;
+            height = document.getElementById('network').clientHeight;
+            
+            d3.select("#network svg")
+                .attr("width", width)
+                .attr("height", height);
+                
+            simulation.force("center", d3.forceCenter(width / 2, height / 2));
+            simulation.alpha(1).restart();
+        }
+    </script>
+</body>
+</html>
