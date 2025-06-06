@@ -1,30 +1,26 @@
 {
-    "simulation": {
-      "time_tick_ms": 100,
-      "max_time": 10000,
-      "random_seed": 42,
-      "events_file": "simulation_events.json"
+    "seed_node": {
+        "id": "CCCA48F5B3EF74C1B7D17AEB9ED54E4FDA415FFF",
+        "address": "7F000001"
     },
-    "dht": {
-      "k_value": 8,
-      "id_bits": 160,
-      "alpha": 3,
-      "republish_interval": 3600
+    "simulation": {
+        "random_seed": 42,
+        "max_time": 1500,
+        "time_tick_ms": 100,
+        "events_file": "simulation_events.json"
     },
     "network": {
-      "min_delay": 1,
-      "max_delay": 5,
-      "packet_loss_rate": 0.05
+        "min_delay": 1,
+        "max_delay": 2,
+        "base_packet_loss": 0.05
+    },
+    "dht": {
+        "k_value": 8,
+        "id_bits": 160,
+        "ping_timeout": 500
     },
     "logging": {
-      "level": "INFO",
-      "file": "simulation.log",
-      "console": true,
-      "output_dir": "output"
-    },
-    "seed_node": {
-      "id": null,
-      "address": null
+        "level": "INFO",
+        "output_dir": "output"
     }
-  }
-  
+}

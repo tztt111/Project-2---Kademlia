@@ -12,14 +12,68 @@ from event_system import Event, EventType  # 导入事件类型
 
 def load_simulation_events(filename: str) -> List[Dict[str, Any]]:
     """从文件加载模拟事件"""
-    with open(filename, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    try:
+        with open(filename, 'r', encoding='utf-8') as f:
+            events = json.load(f)
+            if not isinstance(events, list):
+                print(f"Warning: {filename} 格式不正确，期望事件列表")
+                return []
+            return events
+    except FileNotFoundError:
+        print(f"Error: 找不到事件文件 {filename}")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"Error: 事件文件 {filename} JSON格式错误: {str(e)}")
+        return []
 
 def bytes_from_hex_or_random(hex_str: str = None, length: int = 20) -> bytes:
     """从十六进制字符串创建字节或生成随机字节"""
     if hex_str:
-        return bytes.fromhex(hex_str)
+        try:
+            # 移除所有空白字符并确保是大写
+            hex_str = hex_str.strip().upper()
+            return bytes.fromhex(hex_str)
+        except ValueError as e:
+            print(f"Error converting hex string: {hex_str}")
+            print(f"Error message: {str(e)}")
+            raise
     return IDUtil.generate_random_id(length*8)
+
+def setup_network_monitoring(simulator, visualizer):
+    """设置网络监控"""
+    def on_message_dropped(event):
+        msg = event.params["message"]
+        visualizer.record_event(
+            EventType.MESSAGE_DROPPED,
+            event.time,
+            {
+                "source": msg["source_id"][:8],
+                "target": msg["target_id"][:8],
+                "type": msg["type"],
+                "retry_count": msg["content"].get("retry_count", 0)
+            }
+        )
+        print(f"[{event.time}] 丢包: {msg['source_id'][:8]} -> {msg['target_id'][:8]}" + 
+              (f" (重试 #{msg['content'].get('retry_count', 0)})" if msg['content'].get('retry_count', 0) > 0 else ""))
+    
+    def on_message_sent(event):
+        msg = event.params["message"]
+        retry_count = msg["content"].get("retry_count", 0)
+        if retry_count > 0:
+            visualizer.record_event(
+                EventType.MESSAGE_SENT,
+                event.time,
+                {
+                    "source": msg["source_id"][:8],
+                    "target": msg["target_id"][:8],
+                    "type": msg["type"],
+                    "retry_count": retry_count
+                }
+            )
+            print(f"[{event.time}] 重试 #{retry_count}: {msg['source_id'][:8]} -> {msg['target_id'][:8]}")
+    
+    simulator.event_emitter.on(EventType.MESSAGE_DROPPED, on_message_dropped)
+    simulator.event_emitter.on(EventType.MESSAGE_SENT, on_message_sent)
 
 def main():
     # 加载配置
@@ -42,6 +96,9 @@ def main():
     simulator.event_emitter.on(EventType.FILE_PUBLISH, lambda e: visualizer.record_event(e.type, e.time, e.params))
     simulator.event_emitter.on(EventType.FILE_RETRIEVE, lambda e: visualizer.record_event(e.type, e.time, e.params))
     simulator.event_emitter.on(EventType.MESSAGE_SENT, lambda e: visualizer.record_event(e.type, e.time, e.params))
+    
+    # 设置网络监控
+    setup_network_monitoring(simulator, visualizer)
     
     # 加载事件文件
     events_file = config.get("simulation.events_file", "simulation_events.json")
@@ -77,16 +134,16 @@ def main():
         
         if event_type_str == "NODE_JOIN":
             event_type = EventType.NODE_JOIN
-            # 创建新节点
-            new_node = DHTNode(
+            # 创建新节点但暂不上线
+            node = DHTNode(
                 params["node_id"],
                 params["address"],
                 simulator,
                 config.get("dht.k_value", 8),
                 config.get("dht.id_bits", 160)
             )
-            # 使用种子节点加入网络
-            new_node.join_network(seed_id)
+            # 添加种子节点ID到参数中，用于节点加入时的引导
+            params["seed_node_id"] = seed_id
         
         elif event_type_str == "NODE_LEAVE":
             event_type = EventType.NODE_LEAVE

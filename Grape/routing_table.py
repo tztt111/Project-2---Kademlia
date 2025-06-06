@@ -148,3 +148,20 @@ class RoutingTable(IRoutingTable):
             "max_bucket_nodes": max((bucket.size() for bucket in self.buckets), default=0),
             "bucket_distribution": [bucket.size() for bucket in self.buckets]
         }
+    
+    def update_last_seen(self, node_id: bytes, last_seen: int) -> bool:
+        """更新节点的最后可见时间"""
+        bucket_index = IDUtil.get_bucket_index(self.node_id, node_id)
+        if bucket_index < 0:
+            return False
+
+        # 获取节点所在的K桶
+        bucket = self.buckets[bucket_index]
+        node = bucket.get_node(node_id)
+        if node:
+            # 更新最后可见时间并移动到列表末尾
+            bucket.remove_node(node_id)
+            bucket.add_node(node_id, node['address'], last_seen)
+            return True
+            
+        return False

@@ -37,8 +37,8 @@ class Message:
         """将消息转换为字典格式"""
         return {
             "type": self.type.value,
-            "source_id": self.source_id.hex(),
-            "target_id": self.target_id.hex(),
+            "source_id": self.source_id.hex().upper(),
+            "target_id": self.target_id.hex().upper(),
             "content": self.content,
             "transaction_id": self.transaction_id,
             "send_time": self.send_time,
@@ -48,16 +48,22 @@ class Message:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Message':
         """从字典创建消息对象"""
-        msg = cls(
-            msg_type=MessageType(data["type"]),
-            source_id=bytes.fromhex(data["source_id"]),
-            target_id=bytes.fromhex(data["target_id"]),
-            content=data["content"],
-            transaction_id=data["transaction_id"]
-        )
-        msg.send_time = data.get("send_time")
-        msg.delivery_time = data.get("delivery_time")
-        return msg
+        try:
+            source_id = bytes.fromhex(data["source_id"])
+            target_id = bytes.fromhex(data["target_id"])
+            msg = cls(
+                msg_type=MessageType(data["type"]),
+                source_id=source_id,
+                target_id=target_id,
+                content=data["content"],
+                transaction_id=data["transaction_id"]
+            )
+            msg.send_time = data.get("send_time")
+            msg.delivery_time = data.get("delivery_time")
+            return msg
+        except ValueError as e:
+            print(f"Error converting hex IDs: {str(e)}")
+            raise
     
     def create_response(self, content: Dict[str, Any], msg_type=None) -> 'Message':
         """创建对此消息的响应"""

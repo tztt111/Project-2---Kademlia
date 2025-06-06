@@ -5,7 +5,7 @@ from interfaces import ISimulator, INode
 from event_system import Event, EventType, EventEmitter
 from event_queue import EventQueue
 from simulation_clock import SimulationClock
-from message import Message
+from message import Message, MessageType
 from logger import Logger
 from config import Config
 from id_util import IDUtil
@@ -82,45 +82,47 @@ class DHTSimulator(ISimulator):
         """处理单个事件"""
         # 记录事件
         self.logger.debug(
-            self.clock.get_time(),
+            event.time,
             "Event",
             f"Processing event: {event.type.name}",
             {"event_type": event.type.name, "params": event.params}
         )
         
-        # 发送事件到订阅者
-        self.event_emitter.emit(event)
+        # 设置事件处理时的时间上下文
+        self.clock.set_time(event.time)
         
         # 根据事件类型处理
         if event.type == EventType.NODE_JOIN:
             node_id = event.params.get("node_id")
+            seed_node_id = event.params.get("seed_node_id")
             if node_id in self.nodes:
                 node = self.nodes[node_id]
-                # 处理节点加入
+                node.join_network(seed_node_id)
                 self.logger.info(
-                    self.clock.get_time(),
+                    event.time,
                     "Node",
-                    f"Node {node_id.hex()[:8]} joined the network"
+                    f"Node {node_id.hex()[:8]} joined the network at time {event.time}"
                 )
         
         elif event.type == EventType.NODE_LEAVE:
             node_id = event.params.get("node_id")
             if node_id in self.nodes:
-                # 处理节点离开
+                node = self.nodes[node_id]
+                node.leave_network()
                 self.logger.info(
-                    self.clock.get_time(),
+                    event.time,
                     "Node",
-                    f"Node {node_id.hex()[:8]} left the network"
+                    f"Node {node_id.hex()[:8]} left the network at time {event.time}"
                 )
-                # 可以选择从nodes字典中移除
-                # self.nodes.pop(node_id)
         
         elif event.type == EventType.FILE_PUBLISH:
             node_id = event.params.get("node_id")
             file_id = event.params.get("file_id")
-            if node_id and file_id:
+            if node_id and file_id and node_id in self.nodes:
+                node = self.nodes[node_id]
+                node.publish_file(file_id)
                 self.logger.info(
-                    self.clock.get_time(),
+                    event.time,
                     "File",
                     f"Node {node_id.hex()[:8]} is publishing file {file_id.hex()[:8]}"
                 )
@@ -128,60 +130,107 @@ class DHTSimulator(ISimulator):
         elif event.type == EventType.FILE_RETRIEVE:
             node_id = event.params.get("node_id")
             file_id = event.params.get("file_id")
-            if node_id and file_id:
+            if node_id and file_id and node_id in self.nodes:
+                node = self.nodes[node_id]
+                node.retrieve_file(file_id)
                 self.logger.info(
-                    self.clock.get_time(),
+                    event.time,
                     "File",
                     f"Node {node_id.hex()[:8]} is retrieving file {file_id.hex()[:8]}"
                 )
+        
+        elif event.type == EventType.MESSAGE_DROPPED:
+            message_dict = event.params.get("message")
+            if message_dict:
+                message = Message.from_dict(message_dict)
+                # Only log packet drops in debug level
+                self.logger.debug(
+                    event.time,
+                    "Message",
+                    f"Message from {message.source_id.hex()[:8]} to {message.target_id.hex()[:8]} dropped"
+                )
+                # Only print critical message drops (like FIND_NODE during join)
+                if message.type == MessageType.FIND_NODE:
+                    print(f"[{event.time}] 丢包: {message.source_id.hex()[:8]} -> {message.target_id.hex()[:8]} (FIND_NODE)")
+        
+        # 发送事件到订阅者
+        self.event_emitter.emit(event)
     
-    def send_message(self, message: Message) -> None:
+    def calculate_packet_loss_rate(self, source_address: bytes, target_address: bytes) -> float:
+        """基于IP地址距离计算丢包率"""
+        # 确保地址长度一致（补齐到4字节）
+        def normalize_address(addr: bytes) -> bytes:
+            if len(addr) < 4:
+                return bytes([0] * (4 - len(addr))) + addr
+            return addr[:4]
+        
+        source = normalize_address(source_address)
+        target = normalize_address(target_address)
+        
+        # 使用XOR距离计算基础丢包率
+        distance = IDUtil.calculate_distance(source, target)
+        base_packet_loss = self.config.get("network.base_packet_loss", 0.1)
+        
+        # 基于距离增加丢包率（距离越远丢包率越高）
+        distance_factor = distance / (2**32 - 1)  # 归一化距离值
+        packet_loss_rate = base_packet_loss + (distance_factor * 0.2)  # 最多增加20%的丢包率
+        
+        # 添加随机波动 (±5%)
+        variation = self.random.uniform(-0.05, 0.05)
+        return min(1.0, max(0.0, packet_loss_rate + variation))
+
+    def send_message(self, message: Message, event_time: Optional[int] = None) -> None:
         """发送消息（由节点调用）"""
         # 设置消息发送时间
-        message.send_time = self.clock.get_time()
+        message.send_time = event_time if event_time is not None else self.clock.get_time()
         
         # 检查目标节点是否存在
         if message.target_id not in self.nodes:
             self.logger.warning(
-                self.clock.get_time(),
+                message.send_time,
                 "Message",
                 f"Message target node {message.target_id.hex()[:8]} not found"
             )
             return
+        
+        # 获取源节点和目标节点
+        source_node = self.nodes[message.source_id]
+        target_node = self.nodes[message.target_id]
         
         # 模拟网络延迟
         min_delay = self.config.get("network.min_delay", 1)
         max_delay = self.config.get("network.max_delay", 3)
         delay = self.random.randint(min_delay, max_delay)
         
-        # 模拟丢包
-        packet_loss_rate = self.config.get("network.packet_loss_rate", 0.0)
+        # 基于距离计算丢包率
+        packet_loss_rate = self.calculate_packet_loss_rate(
+            source_node.get_address(),
+            target_node.get_address()
+        )
+        
+        # 记录消息发送
+        self.logger.debug(
+            message.send_time,
+            "Message",
+            f"Message from {message.source_id.hex()[:8]} to {message.target_id.hex()[:8]} sent, "
+            f"type: {message.type.name}, delivery in {delay} ticks"
+        )
+        
         if self.random.random() < packet_loss_rate:
-            self.logger.debug(
-                self.clock.get_time(),
-                "Message",
-                f"Message from {message.source_id.hex()[:8]} to {message.target_id.hex()[:8]} dropped"
-            )
-            
-            # 发送消息丢失事件
-            self.event_emitter.emit(Event(
-                EventType.MESSAGE_DROPPED,
-                self.clock.get_time(),
-                {"message": message.to_dict()}
-            ))
+            # 调度丢包事件，但仅对重要消息记录日志
+            if message.type in [MessageType.FIND_NODE, MessageType.FIND_VALUE]:
+                drop_time = message.send_time + (delay // 2)
+                dropped_event = Event(
+                    EventType.MESSAGE_DROPPED,
+                    drop_time,
+                    {"message": message.to_dict()}
+                )
+                self.schedule_event(dropped_event)
             return
         
         # 设置消息投递时间
         delivery_time = message.send_time + delay
         message.delivery_time = delivery_time
-        
-        # 记录消息发送
-        self.logger.debug(
-            self.clock.get_time(),
-            "Message",
-            f"Message from {message.source_id.hex()[:8]} to {message.target_id.hex()[:8]} sent, "
-            f"type: {message.type.name}, delivery in {delay} ticks"
-        )
         
         # 安排消息投递事件
         self.schedule_event(Event(
@@ -193,7 +242,7 @@ class DHTSimulator(ISimulator):
         # 发送消息发送事件
         self.event_emitter.emit(Event(
             EventType.MESSAGE_SENT,
-            self.clock.get_time(),
+            message.send_time,
             {"message": message.to_dict()}
         ))
     
@@ -248,7 +297,7 @@ class DHTSimulator(ISimulator):
         # 检查目标节点是否存在
         if message.target_id not in self.nodes:
             self.logger.warning(
-                self.clock.get_time(),
+                event.time,
                 "Message",
                 f"Message target node {message.target_id.hex()[:8]} not found"
             )
@@ -258,18 +307,11 @@ class DHTSimulator(ISimulator):
         target_node = self.nodes[message.target_id]
         
         # 让目标节点处理消息
-        self.logger.debug(
-            self.clock.get_time(),
-            "Message",
-            f"Delivering message from {message.source_id.hex()[:8]} to {message.target_id.hex()[:8]}, "
-            f"type: {message.type.name}"
-        )
-        
         response = target_node.handle_message(message)
         
         # 如果有响应，发送回去
         if response:
-            self.send_message(response)
+            self.send_message(response, event.time)
     
     def create_seed_node(self, node_id: bytes, address: bytes) -> INode:
         """创建并注册种子节点"""
@@ -284,14 +326,14 @@ class DHTSimulator(ISimulator):
             self.config.get("dht.id_bits", 160)
         )
         
-        # 设置为在线
-        seed_node.is_online = True
+        # 仅设置初始状态，不触发加入网络
+        seed_node.is_online = False
         
-        # 发送节点加入事件
+        # 调度种子节点加入事件
         self.schedule_event(Event(
             EventType.NODE_JOIN,
-            self.clock.get_time(),
-            {"node_id": node_id, "address": address}
+            0,  # 种子节点在时间0加入
+            {"node_id": node_id, "seed_node_id": None}  # seed_node_id为None表示是种子节点
         ))
         
         return seed_node
@@ -304,11 +346,9 @@ class DHTSimulator(ISimulator):
         """获取当前网络状态"""
         node_states = {}
         for node_id, node in self.nodes.items():
-            # 假设节点有一个get_state方法，将其状态转换为可序列化的格式
             if hasattr(node, 'get_state'):
                 node_states[node_id.hex()] = node.get_state()
             else:
-                # 基本信息
                 node_states[node_id.hex()] = {
                     "id": node_id.hex(),
                     "address": node.get_address().hex(),

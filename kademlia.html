@@ -481,8 +481,7 @@
                     const prefixLength = getPrefixLength(currentNode.nodeId, node.nodeId);
                     
                     // 将节点添加到对应的K桶中
-                    // 在实际的Kademlia中，每个K桶最多包含k个节点（通常k=20）
-                    if (buckets[prefixLength].length < 20) {
+                    if (buckets[prefixLength].length < 8) {
                         buckets[prefixLength].push(node);
                     }
                 }
@@ -716,7 +715,7 @@
                     
                     const bucketHeader = document.createElement("div");
                     bucketHeader.className = "k-bucket-header";
-                    bucketHeader.textContent = `K-Bucket ${bucket.index} (共同前缀长度: ${bucket.index} 位)`;
+                    bucketHeader.textContent = `K-Bucket ${160-bucket.index} (共同前缀长度: ${160-bucket.index} 位)`;
                     bucketDiv.appendChild(bucketHeader);
                     
                     bucket.nodes.forEach(n => {

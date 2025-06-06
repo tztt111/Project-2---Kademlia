@@ -7,9 +7,7 @@ class IDUtil:
     @staticmethod
     def generate_random_id(bits: int = 160) -> bytes:
         """生成指定位数的随机ID"""
-        res = os.urandom(bits // 8)
-        print(len(res))
-        return res
+        return os.urandom(bits // 8)
     
     @staticmethod
     def generate_id_from_string(input_string: str, bits: int = 160) -> bytes:
@@ -26,8 +24,7 @@ class IDUtil:
         """计算两个ID之间的XOR距离"""
         # 确保两个ID长度相同
         if len(id1) != len(id2):
-            print(len(id1),len(id2))
-            raise ValueError("ID lengths must be equal")
+            raise ValueError(f"ID lengths must be equal (got {len(id1)} and {len(id2)})")
         
         # 按字节计算XOR然后转换为整数
         return int.from_bytes(bytes(a ^ b for a, b in zip(id1, id2)), byteorder='big')
